@@ -1,0 +1,97 @@
+import org.apache.spark.sql.types._
+import org.apache.spark.sql._
+import org.apache.spark.sql.expressions.Window
+#########################     SCHEMA          #################################
+val schema_person_place = new StructType().add("person",StringType,true).add("place",StringType,true)
+val schema_rate_song = new StructType().add("rate",StringType,true).add("song",StringType,true)
+val sch_rate = new StructType().add("id",IntegerType,true).add("rate",IntegerType,true).add("date_r",DateType,true)
+val sch = new StructType().add("state",StringType,true).add("age",IntegerType,true).add("id",IntegerType,true)
+
+########################      FILE READING     #################################
+val df_person_place = spark.read.options(Map("delimiter"->"|")).schema(schema_person_place).csv("C:/Users/US10020107/Downloads/spark_input/input_file_person_city.csv")
+val df_in_rate = spark.read.format("csv").options(Map("delimiter"->"|")).schema(schema_rate_song).load("C:/Users/US10020107/Downloads/spark_input/input_file_rate_person.csv")
+val df_dt_rate = spark.read.format("csv").schema(sch_rate).load("C:/Users/US10020107/Downloads/input_file_date_rate.txt")
+val df_in = spark.read.format("csv").schema(sch).load("C:/Users/US10020107/Downloads/input_file_age_bucket.txt")
+val data_int = spark.read.textFile("C:/Users/US10020107/Downloads/input_file_age_bucket.txt")
+#########################     SPLITTING        #################################
+val df_person_place_split  = df_person_place.withColumn("person",split(col("person"),",")).withColumn("place",split(col("place"),","))
+val df_in_rate_split  = df_in_rate.withColumn("rate",split(col("rate"),",")).withColumn("song",split(col("song"),","))
+
+#########################     EXPLODE          #################################
+val explode_person_df = df_person_place_split.select(col("person"),explode(col("place")).as("place")).select(explode(col("person")).as("person"),col("place"))
+val explode_singer_df = df_in_rate_split.select(col("rate"),explode(col("song")).as("song")).select(explode(col("rate")).as("rate"),col("song"))
+
+#########################     COLLECT          #################################
+val collect_person_df1 = explode_person_df.groupBy(col("place")).agg(collect_list(col("person")).as("person")).groupBy(col("person")).agg(collect_list(col("place")).as("place"))
+val collect_person_df2 = explode_person_df.groupBy(col("person")).agg(collect_list(col("place")).as("place")).groupBy(col("place")).agg(collect_list(col("person")).as("person"))
+
+val collect_singer_df1 = explode_singer_df .groupBy(col("song")).agg(collect_list(col("rate")).as("rate")).groupBy(col("rate")).agg(collect_list(col("song")).as("song"))
+val collect_singer_df2 = explode_singer_df .groupBy(col("rate")).agg(collect_list(col("song")).as("song")).groupBy(col("song")).agg(collect_list(col("rate")).as("rate"))
+
+#########################     JOIN          #################################
+val join_person_df_anti = explode_person_df.join(explode_singer_df, explode_person_df.col("person") === explode_singer_df.col("rate"), "left_anti")
+val join_person_df_left = explode_person_df.join(explode_singer_df, explode_person_df.col("person") === explode_singer_df.col("rate"), "left")
+
+val join_person_df_left = explode_person_df.join(explode_singer_df, explode_person_df("person") === explode_singer_df("rate"), "left")
+#########################     Filter        #################################
+val filter_person_df = explode_person_df.filter(col("person")===3)
+val filter_singer_df = explode_singer_df.filter(col("song")==="help")
+
+val filter_singer_df1 = explode_singer_df.filter(explode_singer_df("song")==="help")
+#########################     CASE        #################################
+val case_person_df = explode_person_df
+val case_singer_df = explode_singer_df 
+
+ val df_bucket = df_in.withColumn("bucket_name", when(df_in("age") <= 10,"10").when(df_in("age") > 10 && df_in("age") <= 20,"11-20").when(df_in("age") > 20 && df_in("age") <= 40,"21-40").otherwise("61-100"))
+
+#########################     AGGREGATION        #################################
+val aggregation_person_df = explode_person_df.groupBy("place").agg(sum("person"))
+val aggregation_singer_df = explode_singer_df.groupBy("song").agg(max("rate"))
+df_bucket.groupBy(df_bucket("state"),df_bucket("bucket_name")).count().show
+
+#########################     WINDOW        #################################
+val window_person_df = explode_person_df
+val window_singer_df = explode_singer_df 
+
+val windowSpec = Window.partitionBy("id").orderBy("date_r")
+val windowSpec = Window.partitionBy("id")
+val date_new = low_16.withColumn("date_n",max(low_16("date_r")).over(windowSpec))
+
+#########################     TEMP TABLE        #################################
+df_dt_rate .createOrReplaceTempView("date_rate")
+val low_16 = spark.sql("select * from date_rate where date_r <= '2023-08-16'")
+
+#########################     CASE CLASS        #################################
+case class StateAge(state:String, age:Int, sno:Int)
+#########################     DATASET CREATION     #################################
+val ds_state_age = data_int.map(rec => rec.split(",")).map(recArr => new StateAge(recArr(0),recArr(1).toInt,recArr(2).toInt))
+
+
+val data_int = spark.read.textFile("C:/Users/US10020107/Downloads/input_file_int.txt")
+case class StateAge(state:String, age:Int, sno:Int)
+val ds_state_age = data_int.map(rec => rec.split(",")).map(recArr => new StateAge(recArr(0),recArr(1).toInt,recArr(2).toInt))
+
+val data_int=sc.textFile("C:/Users/US10020107/Downloads/input_file_int.txt")
+val data_flat_int = data_int.flatMap(x => x.toInt)
+val data_flat_int = data_int.flatMap(x => x.toInt)
+data_int.flatMap(x => x.toInt).reduceby(_+_)
+data_int.sum()
+data_int.map(x => x.toInt).sum()
+data_int.map(x => x.toInt).reduce(_+_)
+data_int.map(x => ("s",x.toInt)).reduceBy(_+_)
+data_int.map(x => ("s",x.toInt)).reduceByKey(_+_).show()
+val dt = data_int.map(x => ("s",x.toInt)).reduceByKey(_+_)
+
+
+val data_str=sc.textFile("C:/Users/US10020107/Downloads/input_file.txt")
+val data_str_flat = data_str.flatMap(x => x.split(" "))
+val map_red_str = data_str_flat.map(x => (x,1)).reduceByKey((x,y) => x+y)
+
+val str = "gt"
+str == null
+val str = null
+val str = NULL
+val str = Null
+val str = ""
+str match {case null => "not available"; case _ => str}
+str match {case null => "it is null"; case _ => "some thing else"}

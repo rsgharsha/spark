@@ -1,0 +1,16 @@
+#########################       SCHEMA          #################################
+schema = StructType([StructField("name", StringType(), True),StructField("age", IntegerType(), False),StructField("nums", ArrayType(IntegerType(), False)),StructField("stats", StructType([StructField("home_runs", IntegerType(), False),StructField("batting_average", DoubleType(), False),]),True),])
+
+#########################      CREATE DATA          #################################
+rdd = spark.sparkContext.parallelize([Row(first_name="reggie", age=2, nums=[1, 2, 3], stats=Row(home_runs=563, batting_average=0.262)),   Row(first_name="barry", age=33, nums=[4, 5, 6]), stats=Row(home_runs=762, batting_average=0.298))])
+
+#########################        CREATE DATA-FRAME          #################################
+df = spark.createDataFrame(rdd, schema)
+df = spark.createDataFrame([(1, "a"), (2, "b")], ["num", "letter"])
+
+########################      FILE READING     #################################
+df2 = spark.read.option("header",True).options(inferSchema='True',delimiter=',').csv("/path/zipcodes.csv")
+
+########################      FILE WRITING     #################################
+df2.write.format("csv").options(header='True', delimiter=',').option("quote", "\"").option("escape", "\\").option("nullValue", "NA").option("compression", "gzip").mode('overwrite'/'append'/'ignore'/'error').option("dateFormat", "yyyy-MM-dd").save("/tmp/spark_output/zipcodes")
+df = spark.read.parquet("swift2d://xxxx.keystone/commentClusters.parquet")

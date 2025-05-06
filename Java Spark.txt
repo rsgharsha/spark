@@ -1,0 +1,28 @@
+#########################       SCHEMA          #################################
+StructType schema = DataTypes.createStructType(new StructField[] {
+            DataTypes.createStructField("field1",  DataTypes.StringType, true),
+            DataTypes.createStructField("field2", DataTypes.TimestampType, true),
+            DataTypes.createStructField("field3", DataTypes.IntegerType, true),
+            DataTypes.createStructField("field4", DataTypes.createArryType(IntegerType), true),
+            DataTypes.createStructField("field5", DataTypes.createDecimalType(10,2), true)
+    });
+#########################      CREATE DATA          #################################
+NEED TO REWRITE IN JAVA
+rdd = spark.sparkContext.parallelize([Row(first_name="reggie", age=2, nums=[1, 2, 3], stats=Row(home_runs=563, batting_average=0.262)),   Row(first_name="barry", age=33, nums=[4, 5, 6]), stats=Row(home_runs=762, batting_average=0.298))])
+NEED TO REWRITE IN JAVA
+#########################        CREATE DATA-FRAME          #################################
+NEED TO REWRITE IN JAVA
+df = spark.createDataFrame(rdd, schema)
+df = spark.createDataFrame([(1, "a"), (2, "b")], ["num", "letter"])
+NEED TO REWRITE IN JAVA
+########################      FILE READING     #################################
+Dataset<Row> df = spark.read()
+    // some options
+    .schema(schema)
+    .load(myEndpoint);
+#########################     JOIN          #################################
+Dataset<Row> joined_df = source1_df.join(source2r_df, explode_person_df.col("person") === explode_singer_df.col("rate"), "left_anti")
+
+########################      FILE WRITING     #################################
+df2.write.format("csv").options(header='True', delimiter=',').option("quote", "\"").option("escape", "\\").option("nullValue", "NA").option("compression", "gzip").mode('overwrite'/'append'/'ignore'/'error').option("dateFormat", "yyyy-MM-dd").save("/tmp/spark_output/zipcodes")
+df = spark.read.parquet("swift2d://xxxx.keystone/commentClusters.parquet")
